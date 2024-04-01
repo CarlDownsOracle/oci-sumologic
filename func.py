@@ -50,9 +50,10 @@ def handler(ctx, data: io.BytesIO = None):
         if is_oci_streaming_conversion_enabled:
             log_body = convert_oci_streaming_format(log_body)
 
-        post_to_sumologic(log_body)
+        records_posted = post_to_sumologic(log_body)
+        logging.info(f'records posted / {records_posted}')
 
-        return response.Response(ctx, response_data=json.dumps({"status": "Success"}),
+        return response.Response(ctx, response_data=json.dumps({"status": "Success", "records_posted": records_posted}),
                                  headers={"Content-Type": "application/json"})
 
     except Exception as err:
@@ -66,6 +67,7 @@ def post_to_sumologic(body_bytes: bytes):
     """
 
     session = requests.Session()
+    records_posted = 0
 
     try:
         adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10)
@@ -77,26 +79,32 @@ def post_to_sumologic(body_bytes: bytes):
         if not isinstance(event_list, list):
             event_list = [event_list]
 
-        buffer = []
-        buffers = [buffer]
+        batch = []
+        batches = [batch]
+
+        #  divide the incoming payload into batches
 
         for event in event_list:
-            buffer.append(event)
-            if len(buffer) >= max_records_per_post:
-                buffer = []
-                buffers.append(buffer)
+            batch.append(event)
+            if len(batch) >= max_records_per_post:
+                batch = []
+                batches.append(batch)
 
-        for buffer in buffers:
+        for batch in batches:
 
-            if len(buffer) == 0 or is_sending is False:
-                break
+            if len(batch) == 0 or is_sending is False:
+                continue
 
-            post_response = session.post(sumologic_endpoint, data=json.dumps(buffer), headers=http_headers)
+            post_response = session.post(sumologic_endpoint, data=json.dumps(batch), headers=http_headers)
             if post_response.status_code != 200:
                 raise Exception('error posting to API endpoint', post_response.text, post_response.reason)
 
+            records_posted += len(batch)
+
     finally:
         session.close()
+
+    return records_posted
 
 
 def convert_oci_streaming_format(body_bytes: bytes):
@@ -144,7 +152,8 @@ def local_test_mode(filename):
     with open(filename, 'r') as f:
         data = json.load(f)
         converted_bytes = bytes(json.dumps(data), 'ascii')
-        post_to_sumologic(body_bytes=converted_bytes)
+        records_posted = post_to_sumologic(body_bytes=converted_bytes)
+        logging.info(f'records posted / {records_posted}')
 
 
 """
