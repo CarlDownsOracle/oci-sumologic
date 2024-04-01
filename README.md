@@ -65,14 +65,15 @@ These are the variables we need to set up in the Function Application.
 
 Here are the supported variables:
 
-| Environment Variable        |    Default     | Purpose                                                                            |
-|-----------------------------|:--------------:|:-----------------------------------------------------------------------------------|
-| SUMOLOGIC_ENDPOINT          | not-configured | Sumologic API endpoint                                                             |
-| SEND_TO_SUMOLOGIC          |      True      | Set to False if you need to debug things on OCI side without sending to Sumologic. |
-| MAX_RECORDS_PER_POST               |      1000      | Batch size for each POST.                                                          |
-| LOGGING_LEVEL               |      INFO      | Controls function logging outputs.  Choices: INFO, WARN, CRITICAL, ERROR, DEBUG    |
+| Environment Variable |    Default     | Purpose                                                                                                   |
+|----------------------|:--------------:|:----------------------------------------------------------------------------------------------------------|
+| SUMOLOGIC_ENDPOINT   | not-configured | Sumologic API endpoint                                                                                    |
+| SEND_TO_SUMOLOGIC    |      True      | Set to False if you need to debug things on OCI side without sending to Sumologic.                        |
+| SEND_AS_MULTI_LINE   |      True      | Sends events to Sumologic as a series of lines. False causes the function to send events as a JSON array. |
+| MAX_RECORDS_PER_POST |      1000      | Maximum records to send for each POST.    i.e, a batch size.                                              |
+| LOGGING_LEVEL        |      INFO      | Controls function logging outputs.  Choices: INFO, WARN, CRITICAL, ERROR, DEBUG                           |
 
-
+SEND_AS_JSON_ARRAY
 
 
 # Troubleshooting

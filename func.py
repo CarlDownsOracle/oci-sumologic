@@ -20,6 +20,7 @@ banner = "oci function : {} / event payload bytes : {} / sending to sumologic: {
 sumologic_endpoint = os.getenv('SUMOLOGIC_ENDPOINT', 'not-configured')
 max_records_per_post = int(os.getenv('MAX_RECORDS_PER_POST', '1000'))
 is_sending = eval(os.getenv('SEND_TO_SUMOLOGIC', "True"))
+send_as_multiline = eval(os.getenv('SEND_AS_MULT_LINE', "True"))
 
 # Enable if the function will be processing events or logs passing through OCI Streaming
 is_oci_streaming_conversion_enabled = eval(os.getenv('OCI_STREAMING_CONVERSION_ENABLED', "True"))
@@ -79,10 +80,10 @@ def post_to_sumologic(body_bytes: bytes):
         if not isinstance(event_list, list):
             event_list = [event_list]
 
+        #  divide the incoming payload into batches
+
         batch = []
         batches = [batch]
-
-        #  divide the incoming payload into batches
 
         for event in event_list:
             batch.append(event)
@@ -91,11 +92,10 @@ def post_to_sumologic(body_bytes: bytes):
                 batches.append(batch)
 
         for batch in batches:
-
             if len(batch) == 0 or is_sending is False:
                 continue
 
-            post_response = session.post(sumologic_endpoint, data=json.dumps(batch), headers=http_headers)
+            post_response = session.post(sumologic_endpoint, data=serialize(batch), headers=http_headers)
             if post_response.status_code != 200:
                 raise Exception('error posting to API endpoint', post_response.text, post_response.reason)
 
@@ -105,6 +105,22 @@ def post_to_sumologic(body_bytes: bytes):
         session.close()
 
     return records_posted
+
+
+def serialize(batch):
+    """
+    Serialize the event payload as either multiline or JSON array.
+    """
+
+    if send_as_multiline is True:
+        converted = ''
+        for record in batch:
+            json_string = json.dumps(record)
+            converted += json_string + '\n'
+        return converted
+
+    else:
+        return json.dumps(batch)
 
 
 def convert_oci_streaming_format(body_bytes: bytes):
