@@ -18,7 +18,7 @@ banner = "oci function : {} / event payload bytes : {} / sending to sumologic: {
 
 # Sumologic environment variables (set in OCI Application Configuration)
 sumologic_endpoint = os.getenv('SUMOLOGIC_ENDPOINT', 'not-configured')
-max_records_per_post = os.getenv('MAX_RECORDS_PER_POST', 100)
+max_records_per_post = int(os.getenv('MAX_RECORDS_PER_POST', '1000'))
 is_sending = eval(os.getenv('SEND_TO_SUMOLOGIC', "True"))
 
 # Enable if the function will be processing events or logs passing through OCI Streaming
@@ -125,11 +125,11 @@ def convert_oci_streaming_format(body_bytes: bytes):
             converted.append(json.loads(utf8_value))
 
         else:
-            logging.info('OCI Streaming format not detected')
+            logging.debug('OCI Streaming format not detected')
             return body_bytes
 
     converted_bytes = bytes(json.dumps(converted), 'ascii')
-    logging.info('OCI Streaming format detected, conversion complete')
+    logging.debug('OCI Streaming format detected, conversion complete')
 
     return converted_bytes
 
