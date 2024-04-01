@@ -18,6 +18,7 @@ banner = "oci function : {} / event payload bytes : {} / sending to sumologic: {
 
 # Sumologic environment variables (set in OCI Application Configuration)
 sumologic_endpoint = os.getenv('SUMOLOGIC_ENDPOINT', 'not-configured')
+max_records_per_post = os.getenv('MAX_RECORDS_PER_POST', 100)
 is_sending = eval(os.getenv('SEND_TO_SUMOLOGIC', "True"))
 
 # Enable if the function will be processing events or logs passing through OCI Streaming
@@ -76,9 +77,21 @@ def post_to_sumologic(body_bytes: bytes):
         if not isinstance(event_list, list):
             event_list = [event_list]
 
-        for event in event_list:
-            post_response = session.post(sumologic_endpoint, data=json.dumps(event), headers=http_headers)
+        buffer = []
+        buffers = [buffer]
 
+        for event in event_list:
+            buffer.append(event)
+            if len(buffer) >= max_records_per_post:
+                buffer = []
+                buffers.append(buffer)
+
+        for buffer in buffers:
+
+            if len(buffer) == 0 or is_sending is False:
+                break
+
+            post_response = session.post(sumologic_endpoint, data=json.dumps(buffer), headers=http_headers)
             if post_response.status_code != 200:
                 raise Exception('error posting to API endpoint', post_response.text, post_response.reason)
 
@@ -139,5 +152,5 @@ Local Testing
 """
 
 if __name__ == "__main__":
-    local_test_mode('test_data/test.json')
-    # local_test_mode('test_data/test-list.json')
+    # local_test_mode('test_data/test.json')
+    local_test_mode('test_data/test-list.json')
