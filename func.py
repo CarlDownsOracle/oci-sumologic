@@ -14,7 +14,7 @@ from fdk import response
 
 
 # Function banner giving configuration, payload details
-banner = "oci function : {} / event payload bytes : {} / sending to sumologic: {} / logging level: {}"
+banner = "oci function : {} / event payload bytes : {} / sending to sumologic: {} / batch size: {} / logging level: {}"
 
 # Sumologic environment variables (set in OCI Application Configuration)
 sumologic_endpoint = os.getenv('SUMOLOGIC_ENDPOINT', 'not-configured')
@@ -45,7 +45,7 @@ def handler(ctx, data: io.BytesIO = None):
     try:
 
         log_body = data.getvalue()
-        logging.info(banner.format(ctx.FnName(), len(log_body), is_sending, logging_level))
+        logging.info(banner.format(ctx.FnName(), len(log_body), is_sending, max_records_per_post, logging_level))
 
         if is_oci_streaming_conversion_enabled:
             log_body = convert_oci_streaming_format(log_body)

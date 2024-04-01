@@ -69,6 +69,7 @@ Here are the supported variables:
 |-----------------------------|:--------------:|:-----------------------------------------------------------------------------------|
 | SUMOLOGIC_ENDPOINT          | not-configured | Sumologic API endpoint                                                             |
 | SEND_TO_SUMOLOGIC          |      True      | Set to False if you need to debug things on OCI side without sending to Sumologic. |
+| MAX_RECORDS_PER_POST               |      100       | Batch size for each POST.                                                          |
 | LOGGING_LEVEL               |      INFO      | Controls function logging outputs.  Choices: INFO, WARN, CRITICAL, ERROR, DEBUG    |
 
 
