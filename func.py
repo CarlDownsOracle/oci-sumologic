@@ -13,14 +13,9 @@ import requests
 from fdk import response
 
 
-# Function banner giving configuration, payload details
-banner = "oci function : {} / event payload bytes : {} / sending to sumologic: {} / batch size: {} / logging level: {}"
-
 # Sumologic environment variables (set in OCI Application Configuration)
 sumologic_endpoint = os.getenv('SUMOLOGIC_ENDPOINT', 'not-configured')
 max_records_per_post = int(os.getenv('MAX_RECORDS_PER_POST', '1000'))
-is_sending = eval(os.getenv('SEND_TO_SUMOLOGIC', "True"))
-send_as_multiline = eval(os.getenv('SEND_AS_MULT_LINE', "True"))
 
 # Enable if the function will be processing events or logs passing through OCI Streaming
 is_oci_streaming_conversion_enabled = eval(os.getenv('OCI_STREAMING_CONVERSION_ENABLED', "True"))
@@ -46,7 +41,8 @@ def handler(ctx, data: io.BytesIO = None):
     try:
 
         log_body = data.getvalue()
-        logging.info(banner.format(ctx.FnName(), len(log_body), is_sending, max_records_per_post, logging_level))
+        banner = "{} / event payload bytes: {} / batch size: {} / logging level: {}"
+        logging.info(banner.format(ctx.FnName(), len(log_body), max_records_per_post, logging_level))
 
         if is_oci_streaming_conversion_enabled:
             log_body = convert_oci_streaming_format(log_body)
@@ -92,7 +88,7 @@ def post_to_sumologic(body_bytes: bytes):
                 batches.append(batch)
 
         for batch in batches:
-            if len(batch) == 0 or is_sending is False:
+            if len(batch) == 0:
                 continue
 
             post_response = session.post(sumologic_endpoint, data=serialize(batch), headers=http_headers)
@@ -109,18 +105,14 @@ def post_to_sumologic(body_bytes: bytes):
 
 def serialize(batch):
     """
-    Serialize the event payload as either multiline or JSON array.
+    Serialize the event payload per Sumo Logic HTTP Source contract
     """
 
-    if send_as_multiline is True:
-        converted = ''
-        for record in batch:
-            json_string = json.dumps(record)
-            converted += json_string + '\n'
-        return converted
-
-    else:
-        return json.dumps(batch)
+    converted = ''
+    for record in batch:
+        json_string = json.dumps(record)
+        converted += json_string + '\n'
+    return converted
 
 
 def convert_oci_streaming_format(body_bytes: bytes):
